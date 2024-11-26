@@ -22,12 +22,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/sigstore/timestamp-authority/pkg/certmaker"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
+// CLI flags and env vars for config.
+// Supports AWS KMS, Google Cloud KMS, and Azure Key Vault configurations.
 var (
 	logger  *zap.Logger
 	version string
@@ -96,6 +99,9 @@ func init() {
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	// Build KMS config from flags and environment
 	config := certmaker.KMSConfig{
 		Type:              getConfigValue(kmsType, "KMS_TYPE"),
@@ -120,7 +126,6 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	ctx := context.Background()
 	km, err := certmaker.InitKMS(ctx, config)
 	if err != nil {
 		return fmt.Errorf("failed to initialize KMS: %w", err)

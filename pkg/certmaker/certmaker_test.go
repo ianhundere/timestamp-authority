@@ -124,112 +124,61 @@ func TestParseTemplate(t *testing.T) {
 
 // TestCreateCertificates tests certificate chain creation
 func TestCreateCertificates(t *testing.T) {
-	t.Run("Fulcio", func(t *testing.T) {
-		tmpDir, err := os.MkdirTemp("", "cert-test-fulcio-*")
-		require.NoError(t, err)
-		t.Cleanup(func() { os.RemoveAll(tmpDir) })
-
-		// Root template (same for both)
-		rootContent := `{
-			"subject": {
-				"commonName": "https://blah.com"
-			},
-			"issuer": {
-				"commonName": "https://blah.com"
-			},
-			"keyUsage": [
-				"certSign",
-				"crlSign"
-			],
-			"extKeyUsage": [
-				"CodeSigning"
-			],
-			"basicConstraints": {
-				"isCA": true,
-				"maxPathLen": 0
-			},
-			"notBefore": "2024-01-01T00:00:00Z",
-			"notAfter": "2025-01-01T00:00:00Z"
-		}`
-
-		// Fulcio intermediate template
-		intermediateContent := `{
-			"subject": {
-				"commonName": "https://blah.com"
-			},
-			"issuer": {
-				"commonName": "https://blah.com"
-			},
-			"keyUsage": [
-				"certSign",
-				"crlSign"
-			],
-			"extKeyUsage": [
-				"CodeSigning"
-			],
-			"basicConstraints": {
-				"isCA": true,
-				"maxPathLen": 0
-			},
-			"notBefore": "2024-01-01T00:00:00Z",
-			"notAfter": "2025-01-01T00:00:00Z"
-		}`
-
-		testCertificateCreation(t, tmpDir, rootContent, intermediateContent)
-	})
-
 	t.Run("TSA", func(t *testing.T) {
 		tmpDir, err := os.MkdirTemp("", "cert-test-tsa-*")
 		require.NoError(t, err)
 		t.Cleanup(func() { os.RemoveAll(tmpDir) })
 
-		// Root template (same for both)
+		// root template (same for both)
 		rootContent := `{
 			"subject": {
-				"commonName": "https://blah.com"
+				"country": ["US"],
+				"organization": ["Sigstore"],
+				"organizationalUnit": ["Timestamp Authority Root CA"],
+				"commonName": "https://tsa.com"
 			},
 			"issuer": {
-				"commonName": "https://blah.com"
-			},
-			"keyUsage": [
-				"certSign",
-				"crlSign"
-			],
-			"extKeyUsage": [
-				"CodeSigning"
-			],
-			"basicConstraints": {
-				"isCA": true,
-				"maxPathLen": 0
+				"commonName": "https://tsa.com"
 			},
 			"notBefore": "2024-01-01T00:00:00Z",
-			"notAfter": "2025-01-01T00:00:00Z"
-		}`
-
-		// TSA intermediate template
-		intermediateContent := `{
-			"subject": {
-				"commonName": "https://blah.com"
-			},
-			"issuer": {
-				"commonName": "https://blah.com"
+			"notAfter": "2034-01-01T00:00:00Z",
+			"basicConstraints": {
+				"isCA": true,
+				"maxPathLen": 1
 			},
 			"keyUsage": [
 				"certSign",
 				"crlSign"
-			],
-			"basicConstraints": {
-				"isCA": false
+			]
+		}`
+
+		// intermediate template
+		intermediateContent := `{
+			"subject": {
+				"country": ["US"],
+				"organization": ["Sigstore"],
+				"organizationalUnit": ["Timestamp Authority"],
+				"commonName": "https://tsa.com"
 			},
+			"issuer": {
+				"commonName": "https://tsa.com"
+			},
+			"notBefore": "2024-01-01T00:00:00Z",
+			"notAfter": "2034-01-01T00:00:00Z",
+			"basicConstraints": {
+				"isCA": false,
+				"maxPathLen": 0
+			},
+			"keyUsage": [
+				"digitalSignature"
+			],
 			"extensions": [
 				{
 					"id": "2.5.29.37",
 					"critical": true,
-					"value": "asn1Seq (asn1Enc oid:1.3.6.1.5.5.7.3.8) | toJson"
+					"value": {{ asn1Seq (asn1Enc "oid:1.3.6.1.5.5.7.3.8") | toJson }}
 				}
-			],
-			"notBefore": "2024-01-01T00:00:00Z",
-			"notAfter": "2025-01-01T00:00:00Z"
+			]
 		}`
 
 		testCertificateCreation(t, tmpDir, rootContent, intermediateContent)
